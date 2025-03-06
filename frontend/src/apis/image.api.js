@@ -9,6 +9,16 @@ const imageApi = {
       throw error.response;
     }
   },
+  removeImage: async (url) => {
+    try {
+      const response = await fetcher.delete("images/delete", {
+        data: { url },
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response;
+    }
+  },
 };
 
 export default imageApi;

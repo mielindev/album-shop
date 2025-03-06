@@ -13,6 +13,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Avatar,
+  Backdrop,
   Box,
   Breadcrumbs,
   Button,
@@ -76,7 +77,7 @@ export default function ArtistManagement() {
 
   const artistList = res?.data || [];
 
-  const { mutate: handleDeleteArtist } = useMutation({
+  const { mutate: mutateHandleDeleteArtist } = useMutation({
     mutationFn: (id) => artistApi.deleteArtist(id),
     onSuccess: (res) => {
       toast.success(res.message);
@@ -87,6 +88,16 @@ export default function ArtistManagement() {
     },
   });
 
+  const { mutate: mutateHandleRemoveImage } = useMutation({
+    mutationFn: (url) => imageApi.removeImage(url),
+    onSuccess: (res) => {
+      console.log("👉 ~ ArtistManagement ~ res:", res);
+    },
+    onError: (err) => {
+      console.log("👉 ~ ArtistManagement ~ err:", err);
+    },
+  });
+
   const fieldImage = watch("image");
 
   const previewImage = (file) => {
@@ -94,7 +105,7 @@ export default function ArtistManagement() {
     return url;
   };
 
-  const { mutate: handleAddArtist } = useMutation({
+  const { mutate: handleAddArtist, isPending: isAddingArtist } = useMutation({
     mutationFn: (formValues) => artistApi.addArtist(formValues),
     onSuccess: (res) => {
       toast.success(res.message);
@@ -105,9 +116,10 @@ export default function ArtistManagement() {
     },
   });
 
-  const { mutateAsync: handleUploadImage } = useMutation({
-    mutationFn: (file) => imageApi.uploadImage(file),
-  });
+  const { mutateAsync: handleUploadImage, isPending: isUploadingImage } =
+    useMutation({
+      mutationFn: (file) => imageApi.uploadImage(file),
+    });
 
   const handleOpen = () => {
     setOpen(true);
@@ -119,7 +131,6 @@ export default function ArtistManagement() {
   };
 
   const onSubmit = async (formValues) => {
-    console.log("👉 ~ onSubmit ~ formValues:", formValues);
     try {
       let imageUrl = "";
 
@@ -252,7 +263,7 @@ export default function ArtistManagement() {
                     </IconButton>
                     <img
                       src={previewImage(fieldImage)}
-                      className="w-full h-full object-fill"
+                      className="w-full h-full object-contain"
                     />
                   </Box>
                 ) : (
@@ -290,6 +301,13 @@ export default function ArtistManagement() {
           </DialogActions>
         </Box>
       </Dialog>
+
+      <Backdrop
+        sx={(theme) => ({ color: "#fff", zIndex: theme.zIndex.modal + 1 })}
+        open={isAddingArtist || isUploadingImage}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
 
       <TableContainer component={Paper}>
         {artistList.length !== 0 ? (
@@ -333,7 +351,8 @@ export default function ArtistManagement() {
                       </IconButton>
                       <IconButton
                         onClick={() => {
-                          handleDeleteArtist(artist.id);
+                          mutateHandleDeleteArtist(artist.id);
+                          mutateHandleRemoveImage(artist.image);
                         }}
                       >
                         <DeleteIcon sx={{ color: "#F70000" }} />

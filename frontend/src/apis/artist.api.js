@@ -27,6 +27,14 @@ const artistApi = {
       throw error.response;
     }
   },
+  getArtistById: async (id) => {
+    try {
+      const response = await fetcher.post(`/artists/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error.response;
+    }
+  },
 };
 
 export default artistApi;
