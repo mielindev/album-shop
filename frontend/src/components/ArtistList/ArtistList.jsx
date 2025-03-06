@@ -10,6 +10,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import artistApi from "../../apis/artist.api";
+import { CollapseText } from "../../styles/textStyleCollapse";
 
 export default function ArtistList() {
   const { data: res, error } = useQuery({
@@ -17,7 +18,6 @@ export default function ArtistList() {
     queryFn: artistApi.getArtistList,
   });
   const artistData = res?.data || [];
-  console.log("👉 ~ ArtistList ~ artistData:", artistData);
   return (
     <Box sx={{ mt: 2 }}>
       <Typography
@@ -55,19 +55,7 @@ export default function ArtistList() {
                   <Typography gutterBottom variant="h5" component="div">
                     {item.name}
                   </Typography>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "text.secondary",
-                      display: "-webkit-box",
-                      WebkitBoxOrient: "vertical",
-                      WebkitLineClamp: 5,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {item.bio}
-                  </Typography>
+                  <CollapseText variant="body2">{item.bio}</CollapseText>
                 </CardContent>
               </CardActionArea>
             </Card>

@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { logOut } from "../../../store/slices/user.slice";
 
 const StyledAppBar = styled(AppBar)({
   background: "linear-gradient(to right , #a770ef, #cf8bf3, #fdb99b)",

@@ -29,29 +29,7 @@ import toast from "react-hot-toast";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setCurrentUser } from "../../../store/slices/user.slice";
-
-const GradientBtn = styled(Button)({
-  width: "100%",
-  textTransform: "none",
-  fontSize: 16,
-  fontWeight: 500,
-  padding: "8px 12px",
-  border: "1px solid",
-  lineHeight: 1.5,
-  backgroundColor: "#4158D0",
-  backgroundImage:
-    "linear-gradient(43deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)",
-  borderColor: "#0063cc",
-  "&:hover": {
-    backgroundColor: "#0069d9",
-    borderColor: "#0062cc",
-  },
-  "&:active": {
-    boxShadow: "none",
-    backgroundColor: "#0062cc",
-    borderColor: "#005cbf",
-  },
-});
+import { GradientBtn } from "../../../styles/mainButtonStyles";
 
 const schema = Joi.object({
   username: Joi.string().min(6).max(50).required().messages({
