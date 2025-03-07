@@ -41,6 +41,14 @@ const userApi = {
       throw error.response;
     }
   },
+  updateUser: async ({ id, payload }) => {
+    try {
+      const response = await fetcher.put(`/users/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      throw error.response;
+    }
+  },
 };
 
 export default userApi;
