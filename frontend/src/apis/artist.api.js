@@ -1,7 +1,7 @@
 import fetcher from "./fetcher";
 
 const artistApi = {
-  getArtistList: async ({ page = 1, pageSize = 10 }) => {
+  getArtistList: async ({ page = 1, pageSize = 5 }) => {
     try {
       const response = await fetcher.get(
         `/artists?page=${page}&pageSize=${pageSize}`
@@ -22,6 +22,14 @@ const artistApi = {
   addArtist: async (payload) => {
     try {
       const response = await fetcher.post(`/artists`, payload);
+      return response.data;
+    } catch (error) {
+      throw error.response;
+    }
+  },
+  updateArtist: async ({ id, payload }) => {
+    try {
+      const response = await fetcher.put(`/artists/${id}`, payload);
       return response.data;
     } catch (error) {
       throw error.response;

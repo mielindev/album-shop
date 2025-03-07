@@ -15,7 +15,7 @@ import { CollapseText } from "../../styles/textStyleCollapse";
 export default function ArtistList() {
   const { data: res, error } = useQuery({
     queryKey: ["artistList"],
-    queryFn: artistApi.getArtistList,
+    queryFn: () => artistApi.getArtistList({ page: 1, pageSize: 12 }),
   });
   const artistData = res?.data || [];
   return (

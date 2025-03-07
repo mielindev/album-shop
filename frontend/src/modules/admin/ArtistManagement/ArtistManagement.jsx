@@ -1,16 +1,13 @@
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import userApi from "../../../apis/user.api";
-import { styled } from "@mui/material/styles";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
-import TableCell, { tableCellClasses } from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
+
 import {
   Avatar,
   Backdrop,
@@ -20,22 +17,16 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
-  FormControl,
-  FormHelperText,
   IconButton,
-  Input,
-  InputAdornment,
-  InputLabel,
   Link,
+  Pagination,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import ModeEditIcon from "@mui/icons-material/ModeEdit";
-import LockIcon from "@mui/icons-material/Lock";
 import { StyledTableCell, StyledTableRow } from "../../../styles/tableStyles";
 import artistApi from "../../../apis/artist.api";
 import { CollapseText } from "../../../styles/textStyleCollapse";
@@ -44,44 +35,39 @@ import { PATH } from "../../../routes/path";
 import HomeIcon from "@mui/icons-material/Home";
 import { useNavigate } from "react-router-dom";
 import { GradientBtn } from "../../../styles/mainButtonStyles";
-import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import { useForm } from "react-hook-form";
 import Joi from "joi";
 import { joiResolver } from "@hookform/resolvers/joi";
-import { useRef } from "react";
 import imageApi from "../../../apis/image.api";
+import AddOrUpdateArtist from "./AddOrUpdateArtist";
+import AddIcon from "@mui/icons-material/Add";
 
 export default function ArtistManagement() {
-  const [open, setOpen] = useState(false);
+  const [isAddOrUpdate, setIsAddOrUpdate] = useState(false);
+  const [page, setPage] = useState(1);
+  const [dataEdit, setDataEdit] = useState(null);
+  console.log("👉 ~ ArtistManagement ~ dataEdit:", dataEdit);
+  const [isDelete, setIsDelete] = useState(false);
+  const [artist, setArtist] = useState(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const inputRef = useRef(null);
-
-  const { register, handleSubmit, reset, setValue, watch } = useForm({
-    defaultValues: {
-      name: "",
-      bio: "",
-      image: null,
-    },
-  });
 
   const {
     data: res,
-    error,
-    isLoading,
-    isError,
+    isLoading: isLoadingArtistList,
+    isError: isErrorArtistList,
   } = useQuery({
-    queryKey: ["artistList"],
-    queryFn: () => artistApi.getArtistList({ page: 1, pageSize: 20 }),
+    queryKey: ["artistList", page],
+    queryFn: () => artistApi.getArtistList({ page }),
   });
 
   const artistList = res?.data || [];
+  const count = res?.total_pages || 1;
 
   const { mutate: mutateHandleDeleteArtist } = useMutation({
     mutationFn: (id) => artistApi.deleteArtist(id),
     onSuccess: (res) => {
       toast.success(res.message);
-      queryClient.invalidateQueries({ queryKey: ["artistList"] });
+      queryClient.refetchQueries(["artistList", page]);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -98,21 +84,16 @@ export default function ArtistManagement() {
     },
   });
 
-  const fieldImage = watch("image");
-
-  const previewImage = (file) => {
-    const url = file ? URL.createObjectURL(file) : "";
-    return url;
-  };
-
   const { mutate: handleAddArtist, isPending: isAddingArtist } = useMutation({
     mutationFn: (formValues) => artistApi.addArtist(formValues),
     onSuccess: (res) => {
       toast.success(res.message);
-      queryClient.invalidateQueries({ queryKey: ["artistList"] });
+      setIsAddOrUpdate(false);
+      queryClient.refetchQueries(["artistList", page]);
     },
     onError: (err) => {
       toast.error(err.data.message);
+      setIsAddOrUpdate(false);
     },
   });
 
@@ -121,38 +102,74 @@ export default function ArtistManagement() {
       mutationFn: (file) => imageApi.uploadImage(file),
     });
 
-  const handleOpen = () => {
-    setOpen(true);
+  // Add or Update
+  const handleOpenAddOrUpdate = () => {
+    setIsAddOrUpdate(true);
   };
 
-  const handleClose = () => {
-    setOpen(false);
-    reset();
+  const handleCloseAddOrUpdate = () => {
+    setIsAddOrUpdate(false);
+    setDataEdit(null);
   };
+
+  // Change a page
+  const handleChangePage = (event, value) => {
+    setPage(value);
+  };
+
+  // Confirn Delete Artist
+  const handleCloseDelete = () => {
+    setIsDelete(false);
+  };
+
+  const handleConfirmDelete = () => {
+    mutateHandleDeleteArtist(artist.id);
+    mutateHandleRemoveImage(artist.image);
+    handleCloseDelete();
+  };
+
+  const { mutate: mutateUpdateArtist } = useMutation({
+    mutationFn: ({ id, payload }) => artistApi.updateArtist({ id, payload }),
+    onSuccess: (res) => {
+      toast.success(res.message);
+      setIsAddOrUpdate(false);
+      queryClient.refetchQueries(["artistList", page]);
+    },
+    onError: (err) => {
+      toast.error(err.data.message);
+      setIsAddOrUpdate(false);
+    },
+  });
 
   const onSubmit = async (formValues) => {
     try {
-      let imageUrl = "";
+      let imageUrl = formValues.image || "";
 
-      if (formValues.image) {
+      if (formValues.image instanceof File) {
         const formData = new FormData();
         formData.append("image", formValues.image);
         const uploadResponse = await handleUploadImage(formData);
         imageUrl = uploadResponse.imageUrl;
       }
 
-      handleAddArtist({
+      const artistData = {
         ...formValues,
         name: formValues.name,
         bio: formValues.bio,
         image: imageUrl,
-      });
+      };
+
+      if (dataEdit) {
+        mutateUpdateArtist({ id: dataEdit.id, payload: artistData });
+        toast.success("Cập nhật nghệ sĩ thành công!");
+      } else {
+        handleAddArtist(artistData);
+        toast.success("Thêm nghệ sĩ thành công!");
+      }
     } catch (error) {
       console.error("Error:", error);
-      toast.error("Thêm nghệ nghĩ không thành công");
+      toast.error("Thao tác không thành công");
     }
-
-    handleClose();
   };
 
   return (
@@ -164,19 +181,21 @@ export default function ArtistManagement() {
         p={2}
       >
         <Breadcrumbs aria-label="breadcrumb">
-          <Link
-            sx={{
-              cursor: "pointer",
-            }}
-            underline="hover"
-            color="inherit"
-            onClick={() => {
-              navigate(PATH.ADMIN);
-            }}
-          >
-            <HomeIcon sx={{ mr: 0.5 }} fontSize="inherit" />
-            Home
-          </Link>
+          <Stack direction={"row"} alignContent={"center"}>
+            <HomeIcon sx={{ width: 20, height: 20 }} fontSize="inherit" />
+            <Link
+              sx={{
+                cursor: "pointer",
+              }}
+              underline="hover"
+              color="inherit"
+              onClick={() => {
+                navigate(PATH.ADMIN);
+              }}
+            >
+              Dashboard
+            </Link>
+          </Stack>
           <Link
             sx={{
               cursor: "pointer",
@@ -191,116 +210,14 @@ export default function ArtistManagement() {
             Artist Manage
           </Link>
         </Breadcrumbs>
-        <GradientBtn sx={{ width: 200 }} onClick={handleOpen}>
+        <GradientBtn
+          sx={{ width: 200 }}
+          onClick={handleOpenAddOrUpdate}
+          startIcon={<AddIcon />}
+        >
           Thêm
         </GradientBtn>
       </Stack>
-
-      <Dialog fullWidth open={open} onClose={handleClose}>
-        <DialogTitle fontSize={24} fontWeight={600}>
-          {"Thêm nghệ sĩ"}
-        </DialogTitle>
-        <Box component={"form"} onSubmit={handleSubmit(onSubmit)}>
-          <DialogContent>
-            <Stack spacing={2}>
-              <TextField
-                id="name"
-                name="name"
-                {...register("name")}
-                required
-                fullWidth
-                label="Tên nghệ sĩ"
-                variant={"filled"}
-              />
-              <TextField
-                id="bio"
-                name="bio"
-                multiline
-                {...register("bio")}
-                required
-                fullWidth
-                rows={5}
-                label="Tiểu sử"
-                variant={"filled"}
-              />
-              <Box
-                width={"100%"}
-                height={200}
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  backgroundColor: "#E8E8E8",
-                  borderRadius: 2,
-                  border: "1px dashed black",
-                  cursor: "pointer",
-                  overflow: "hidden",
-                }}
-                onClick={() => {
-                  !fieldImage && inputRef.current.click();
-                }}
-              >
-                {fieldImage ? (
-                  <Box
-                    sx={{
-                      width: "100%",
-                      height: "100%",
-                      position: "relative",
-                    }}
-                  >
-                    <IconButton
-                      sx={{
-                        position: "absolute",
-                        top: 4,
-                        right: 4,
-                        zIndex: 10,
-                      }}
-                      onClick={() => {
-                        setValue("image", null);
-                      }}
-                    >
-                      <DeleteIcon sx={{ color: "red", fontSize: 24 }} />
-                    </IconButton>
-                    <img
-                      src={previewImage(fieldImage)}
-                      className="w-full h-full object-contain"
-                    />
-                  </Box>
-                ) : (
-                  <Stack
-                    direction={"row"}
-                    alignItems={"center"}
-                    justifyContent={"center"}
-                    spacing={1}
-                  >
-                    <CloudUploadIcon sx={{ width: 30, height: 30 }} />
-                    <Typography
-                      component={"h3"}
-                      variant={"button"}
-                      fontWeight={600}
-                    >
-                      Upload Files
-                    </Typography>
-                  </Stack>
-                )}
-              </Box>
-            </Stack>
-            <input
-              accept=".png, .jpg, .jpeg"
-              type="file"
-              hidden
-              ref={inputRef}
-              onChange={(event) => {
-                setValue("image", event.target.files[0]);
-              }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose}>Huỷ</Button>
-            <Button type="submit">Thêm</Button>
-          </DialogActions>
-        </Box>
-      </Dialog>
 
       <Backdrop
         sx={(theme) => ({ color: "#fff", zIndex: theme.zIndex.modal + 1 })}
@@ -310,60 +227,7 @@ export default function ArtistManagement() {
       </Backdrop>
 
       <TableContainer component={Paper}>
-        {artistList.length !== 0 ? (
-          <Table sx={{ minWidth: 700 }} aria-label="customized table">
-            <TableHead>
-              <TableRow>
-                <StyledTableCell>ID</StyledTableCell>
-                <StyledTableCell width={120} align="center">
-                  Nghệ danh
-                </StyledTableCell>
-                <StyledTableCell align="center" sx={{ width: 700 }}>
-                  Tiểu sử
-                </StyledTableCell>
-                <StyledTableCell align="center">Hình ảnh</StyledTableCell>
-                <StyledTableCell align="center">Thao tác</StyledTableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {artistList.map((artist) => (
-                <StyledTableRow key={artist.id}>
-                  <StyledTableCell component="th" scope="row">
-                    {artist.id}
-                  </StyledTableCell>
-                  <StyledTableCell align="center">
-                    {artist.name}
-                  </StyledTableCell>
-                  <StyledTableCell align="left">
-                    <CollapseText>{artist.bio}</CollapseText>
-                  </StyledTableCell>
-                  <StyledTableCell align="center">
-                    <Avatar
-                      sx={{ m: "0 auto", width: 60, height: 60 }}
-                      alt={artist.name}
-                      src={artist.image}
-                    />
-                  </StyledTableCell>
-                  <StyledTableCell align="center">
-                    <Stack direction={"row"} justifyContent={"center"}>
-                      <IconButton>
-                        <ModeEditIcon sx={{ color: "#F2B80F" }} />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => {
-                          mutateHandleDeleteArtist(artist.id);
-                          mutateHandleRemoveImage(artist.image);
-                        }}
-                      >
-                        <DeleteIcon sx={{ color: "#F70000" }} />
-                      </IconButton>
-                    </Stack>
-                  </StyledTableCell>
-                </StyledTableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
+        {!isLoadingArtistList && isErrorArtistList ? (
           <Typography
             display={"flex"}
             alignItems={"center"}
@@ -376,8 +240,108 @@ export default function ArtistManagement() {
           >
             Không có dữ liệu
           </Typography>
+        ) : (
+          <Box>
+            <Table sx={{ minWidth: 700 }} aria-label="customized table">
+              <TableHead>
+                <TableRow>
+                  <StyledTableCell>ID</StyledTableCell>
+                  <StyledTableCell width={120} align="center">
+                    Nghệ danh
+                  </StyledTableCell>
+                  <StyledTableCell align="center" sx={{ width: 700 }}>
+                    Tiểu sử
+                  </StyledTableCell>
+                  <StyledTableCell align="center">Hình ảnh</StyledTableCell>
+                  <StyledTableCell align="center">Thao tác</StyledTableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {artistList.map((artist) => (
+                  <StyledTableRow key={artist.id}>
+                    <StyledTableCell component="th" scope="row">
+                      {artist.id}
+                    </StyledTableCell>
+                    <StyledTableCell align="center">
+                      {artist.name}
+                    </StyledTableCell>
+                    <StyledTableCell align="left">
+                      <CollapseText>{artist.bio}</CollapseText>
+                    </StyledTableCell>
+                    <StyledTableCell align="center">
+                      <Avatar
+                        sx={{ m: "0 auto", width: 60, height: 60 }}
+                        alt={artist.name}
+                        src={artist.image}
+                      />
+                    </StyledTableCell>
+                    <StyledTableCell align="center">
+                      <Stack direction={"row"} justifyContent={"center"}>
+                        <IconButton
+                          onClick={() => {
+                            setDataEdit(artist);
+                            setIsAddOrUpdate(true);
+                          }}
+                        >
+                          <ModeEditIcon sx={{ color: "#F2B80F" }} />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => {
+                            setIsDelete(true);
+                            setArtist(artist);
+                          }}
+                        >
+                          <DeleteIcon sx={{ color: "#F70000" }} />
+                        </IconButton>
+                      </Stack>
+                    </StyledTableCell>
+                  </StyledTableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <Stack direction={"row"} justifyContent={"flex-end"} mt={2}>
+              <Pagination
+                count={count}
+                page={page}
+                onChange={handleChangePage}
+                shape="rounded"
+              />
+            </Stack>
+          </Box>
         )}
       </TableContainer>
+
+      {/* Confirm Delete Artist */}
+      <Dialog
+        open={isDelete}
+        onClose={handleCloseDelete}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {"Bạn có muốn xoá nghệ sĩ này không?"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Hành động này sẽ xoá vĩnh viễn nghệ sĩ khỏi hệ thống. Bạn có chắc
+            chắn muốn tiếp tục?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDelete}>Hủy</Button>
+          <Button onClick={handleConfirmDelete} autoFocus>
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add or Update Artist */}
+      <AddOrUpdateArtist
+        open={isAddOrUpdate}
+        handleClose={handleCloseAddOrUpdate}
+        onSubmit={onSubmit}
+        dataEdit={dataEdit}
+      />
     </Box>
   );
 }
