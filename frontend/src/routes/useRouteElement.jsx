@@ -10,6 +10,7 @@ import AdminLayout from "../layouts/AdminLayout/AdminLayout";
 import UserManagement from "../modules/admin/UserManagement/UserManagement";
 import AdminPage from "../modules/admin/AdminPage/AdminPage";
 import ArtistManagement from "../modules/admin/ArtistManagement/ArtistManagement";
+import ProductManagement from "../modules/admin/ProductManagement/ProductManagement";
 export default function useRouteElement() {
   const element = useRoutes([
     {
@@ -54,11 +55,7 @@ export default function useRouteElement() {
         },
         {
           path: PATH.PRODUCT_MANAGE,
-          element: <div>Product management</div>,
-        },
-        {
-          path: PATH.LABEL_MANAGE,
-          element: <div>Label management</div>,
+          element: <ProductManagement />,
         },
       ],
     },

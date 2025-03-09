@@ -63,18 +63,6 @@ export default function Slidebar() {
             </ListItemIcon>
             <ListItemText primary="Product Management" />
           </ListItemButton>
-
-          {/* Label Management */}
-          <ListItemButton
-            component={NavLink}
-            to={PATH.LABEL_MANAGE}
-            sx={{ "&.active": { backgroundColor: "#F5F5F5" } }}
-          >
-            <ListItemIcon>
-              <Label />
-            </ListItemIcon>
-            <ListItemText primary="Label Management" />
-          </ListItemButton>
         </List>
       </Box>
     </Drawer>

@@ -39,6 +39,9 @@ export default function ProductList() {
                 transform: "scale(1.1)",
               },
             }}
+            onClick={() => {
+              console.log("item", item.id);
+            }}
           >
             <img
               srcSet={`${item.image}?w=164&h=164&fit=crop&auto=format&dpr=2 2x`}

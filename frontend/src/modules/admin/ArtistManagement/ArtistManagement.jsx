@@ -328,8 +328,10 @@ export default function ArtistManagement() {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDelete}>Hủy</Button>
-          <Button onClick={handleConfirmDelete} autoFocus>
+          <Button variant={"contained"} onClick={handleCloseDelete}>
+            Hủy
+          </Button>
+          <Button variant={"contained"} onClick={handleConfirmDelete} autoFocus>
             Xác nhận
           </Button>
         </DialogActions>
